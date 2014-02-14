@@ -1,44 +1,40 @@
 package com.bruceslawson.ratelimiter;
 
 
+/**
+ * Base abstract class for all rate limiters. Provides basic functionality
+ * for implementing  
+ * 
+ * 
+ * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
+ *
+ */
 public abstract class RateLimiter {
-	
+
+		
 	/**
 	 * Construct the rate limiter.
 	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
-	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
+	 * @param rateLimit The count limit allowed in ratePeriodSeconds time.
+	 * @param ratePeriodSeconds The rolling period of time.
+	 * @param numberOfSlices The granularity of time within ratePeriodSeconds.
+	 * @param isDebug Set debugging messages on or off.
 	 * 
-	 * @throws IOException
 	 */
-	public RateLimiter(long rateCount, long ratePeriodSeconds, int numberOfBuckets) {
-		this(rateCount, ratePeriodSeconds, numberOfBuckets, false);
-	}
-	
-	
-	/**
-	 * Construct the rate limiter.
-	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
-	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
-	 * @param isDebug Set debugging on or off.
-	 * 
-	 * @throws IOException
-	 */
-	public RateLimiter(long rateCount, long ratePeriodSeconds, int numberOfBuckets, boolean isDebug) {
-		_rateCount = rateCount;
+	public RateLimiter(long rateLimit, long ratePeriodSeconds, int numberOfSlices, boolean isDebug) {
+		_rateLimit = rateLimit;
 		_ratePeriodMillis = ratePeriodSeconds * 1000;
-		_numberOfBuckets = numberOfBuckets;
-		_bucketSizeMillis = (ratePeriodSeconds/numberOfBuckets) * 1000;
+		_numberOfSlices = numberOfSlices;
+		_sliceSizeMillis = (ratePeriodSeconds/numberOfSlices) * 1000;
 		_isDebug = isDebug;
 		
+		_sliceNamer = new SliceNamer(ratePeriodSeconds, numberOfSlices, isDebug);
+		
 		if(_isDebug) {
-			logger("Rate Count: " + _rateCount);
+			logger("Rate Limit: " + _rateLimit);
 			logger("Rate Period (ms): " + _ratePeriodMillis);
-			logger("Number Of Buckets: " + _numberOfBuckets);
-			logger("Bucket Size (ms): " + _bucketSizeMillis);
+			logger("Number Of Slices: " + _numberOfSlices);
+			logger("Slice Size (ms): " + _sliceSizeMillis);
 		}
 	}
 
@@ -62,42 +58,97 @@ public abstract class RateLimiter {
 	 */
 	public abstract void incrementCount(String key, int count);
 	
-	
+
 	/**
-	 * Checks to see if key is over limit.  Increments the key by 1
-	 * before doing the check.
+	 * Checks to see if key is over limit.
 	 * 
 	 * @param key  The unique key
 	 * @return Is the key over the limit?
 	 */
 	public boolean isLimited(String key) {
-		return isLimited(key, 1);
-	}
-
+		return isLimited(key, 0);
+	}	
+	
 	
 	/**
 	 * Checks to see if key is over limit.  Increments the key by count
-	 * before doing the check.
+	 * before doing the check. Zero count means no increment.
 	 * 
 	 * @param key  The unique key
 	 * @param count The amount to increment by
 	 * @return Is the key over the limit?
 	 */
-	public boolean isLimited(String key, int count) {
-		return isLimited(key, true, count);
+	public abstract boolean isLimited(String key, int count);
+
+	
+	// For current slice
+	protected String getSliceKey(String catagoryName) {
+		return catagoryName + "-" + getSliceNamer().getCurrentSliceName(); 
 	}
 	
 	
+//	/**
+//	 * Shuts down the rate limiter.
+//	 */
+//	public void shutdown() {
+//		// Nothing here
+//	}
+//	
+//	/**
+//	 * Removes unused slice from the data store.
+//	 */
+//	public void cleanupExpiredSlices() {
+//		// Nothing here
+//	}
+	
+	
+	//--------------------------------- Protected -------------------------------------------------//
+	
+
 	/**
-	 * Checks to see if key is over limit.  Increments the key by count, if
-	 * isUpdateCount is true, before doing the check.
-	 * 
-	 * @param key The unique key.
-	 * @param isUpdateCount Should count be updated?
-	 * @param count The amount to increment by.
-	 * @return Is the key over the limit?
+	 * @return The number of time slices
 	 */
-	public abstract boolean isLimited(String key, boolean isUpdateCount, int count);
+	protected int getNumberOfSlices() {
+		return _numberOfSlices;
+	}
+
+
+	/**
+	 * @return The size of the time slices in milliseconds
+	 */
+	protected long getSliceSizeMillis() {
+		return _sliceSizeMillis;
+	}
+
+
+	/**
+	 * @return The maximum count allowed
+	 */
+	protected long getRateLimit() {
+		return _rateLimit;
+	}
+	
+
+	/**
+	 * @return The moving window of time in milliseconds
+	 */
+	protected long getRatePeriodMillis() {
+		return _ratePeriodMillis;
+	}
+	
+
+	protected SliceNamer getSliceNamer() {
+		return _sliceNamer;
+	}
+	
+	/**
+	 * Is debugging on or off?
+	 * 
+	 * @return
+	 */
+	protected boolean isDebug() {
+		return _isDebug;
+	}		
 	
 	
 	/**
@@ -105,41 +156,31 @@ public abstract class RateLimiter {
 	 * 
 	 * @param isDebug 
 	 */
-	public void setIsDebug(boolean isDebug) {
+	protected void setIsDebug(boolean isDebug) {
 		_isDebug = isDebug;
-	}
-
-	
-	/**
-	 * Is debugging on or off?
-	 * 
-	 * @return
-	 */
-	public boolean isDebug() {
-		return _isDebug;
 	}	
-
+	
 	
 	/**
-	 * Shut down the rate limiter, if necessary.  This implementation
-	 * does nothing.
+	 * A very basic logger that prints to stdout
+	 * 
+	 * @param message The message to print
 	 */
-	public void shutdown() {
-		// do nothing
-	}
-	
-	
-	//--------------------------------- Protected -------------------------------------------------//
-	
-	protected int _numberOfBuckets;
-	protected long _bucketSizeMillis;
-	protected long _rateCount;
-	protected long _ratePeriodMillis;
-	protected boolean _isDebug;
-	
-	
 	protected void logger(String message) {
 		System.out.println( this.getClass().getName() + "> " + message);
 	}
+	
+	
+	
+	
+	//--------------------------------- Private -------------------------------------------------//
+	
+	private int 		_numberOfSlices;
+	private long 		_sliceSizeMillis;
+	private long 		_rateLimit;
+	private long 		_ratePeriodMillis;
+	private boolean 	_isDebug;
+	
+	private SliceNamer	_sliceNamer;
 
 }

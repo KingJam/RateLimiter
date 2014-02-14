@@ -18,77 +18,31 @@ import net.spy.memcached.MemcachedClient;
  * 		<code>shell> ./memcached -vv</code>
  * <p>
  * Example usage:<br><br>
- * 		<code>RateLimiter limiter = new RateLimiterMemcached(6, 5*60, 5);<br>
+ * 		<code>RateLimiter limiter = new RateLimiterMemcached(6, 5*60, 5, false);<br>
  * 		boolean isThisKeyLimited = limiter.isLimited("username@domain.com");</code>
  *
- * @author Bruce Slawson &lt;bruce.slawson@gmail.com&gt;
+ * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
  */
 public class RateLimiterMemcached extends RateLimiter {	
-	
-	/**
-	 * Construct the rate limiter.
-	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
-	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
-	 * 
-	 * @throws IOException
-	 */
-	public RateLimiterMemcached(long rateCount, long ratePeriodSeconds, int numberOfBuckets) throws IOException {
-		this(rateCount, ratePeriodSeconds, numberOfBuckets, false);
-	}
-	
 
+		
 	/**
 	 * Construct the rate limiter.
 	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
+	 * @param rateLimit The counts limit allowed in ratePeriodSeconds time.
 	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
-	 * @param memcachedServers The memcached servers.
-	 * 
-	 * @throws IOException
-	 */
-	public RateLimiterMemcached(long rateCount, long ratePeriodSeconds, int numberOfBuckets, InetSocketAddress ... memcachedServers) throws IOException {
-		this(rateCount, ratePeriodSeconds, numberOfBuckets, false, memcachedServers);
-	}
-	
-	
-	/**
-	 * Construct the rate limiter.
-	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
-	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
-	 * @param isDebug Set debugging on or off.
-	 * 
-	 * @throws IOException
-	 */
-	public RateLimiterMemcached(long rateCount, long ratePeriodSeconds, int numberOfBuckets, boolean isDebug) throws IOException {		
-		this(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, null);
-	}
-	
-	
-	/**
-	 * Construct the rate limiter.
-	 * 
-	 * @param rateCount The counts limit allowed in ratePeriodSeconds time.
-	 * @param ratePeriodSeconds The rolling period of time to check count.
-	 * @param numberOfBuckets The granularity of time within ratePeriodSeconds.
+	 * @param numberOfSlices The granularity of time within ratePeriodSeconds.
 	 * @param isDebug Set debugging on or off.
 	 * @param memcachedServers The memcached servers
 	 * 
 	 * @throws IOException
 	 */
-	public RateLimiterMemcached(long rateCount, long ratePeriodSeconds, int numberOfBuckets, boolean isDebug, InetSocketAddress ... memcachedServers) throws IOException {		
-		super(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug);
+	public RateLimiterMemcached(long rateLimit, long ratePeriodSeconds, int numberOfSlices, boolean isDebug, InetSocketAddress ... memcachedServers) throws IOException {		
+		super(rateLimit, ratePeriodSeconds, numberOfSlices, isDebug);
 		
-		// Get the bucket key generator
-		_keyedBuckets = new BucketKeys(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug);
-		
-		// Setup the memcached connections
+		// Setup the memcache connections
 	    if(memcachedServers == null || memcachedServers.length < 1) {
-			if(_isDebug) {
+			if(isDebug()) {
 				logger("No memcached server provided. Using default 127.0.0.1:11211");
 			}
 	    	_mcdClient = new MemcachedClient(new InetSocketAddress("127.0.0.1", 11211));
@@ -105,7 +59,7 @@ public class RateLimiterMemcached extends RateLimiter {
 	 * @param count The amount to increment by
 	 */
 	public void incrementCount(String key, int count) {
-		_mcdClient.incr(getMemCacheKey(key), count, count, getMemCacheBucketExpiration());
+		_mcdClient.incr(getSliceKey(key), count, count, getMemCacheSliceExpiration());
 	}
 	
 	
@@ -118,54 +72,54 @@ public class RateLimiterMemcached extends RateLimiter {
 	 * @param count The amount to increment by.
 	 * @return Is the key over the limit?
 	 */
-	public boolean isLimited(String key, boolean isUpdateCount, int count) {
+	public boolean isLimited(String key, int count) {
 		
-		if(isUpdateCount) {
+		if(count != 0) {
 			incrementCount(key, count);
 		}
 		
 		// Get all the keys
-		String[] keys = _keyedBuckets.getAllBucketKeys();
+		String[] keys = getSliceNamer().getAllSliceNames();
 		for(int i = 0; i < keys.length; i++) {
 			keys[i] = getMemCacheKey(key, keys[i]);;
 		}
 		
-		// Get all the buckets at once
-		Map buckets = _mcdClient.getBulk(keys);
+		// Get all the slices at once
+		Map<String, Object> slices = _mcdClient.getBulk(keys);
 		
-		// Sum the buckets
-		Long bucketSum = 0L;
+		// Sum the slices
+		Long slicesSum = 0L;
 		for(int i = 0; i < keys.length; i++) {
-			String bucketCountString = (String)buckets.get(keys[i]);
+			String sliceCountString = (String)slices.get(keys[i]);
 			
-			if(_isDebug) {
-				logger("Bucket " + keys[i] + " for key " + key + ": " + bucketCountString);
+			if(isDebug()) {
+				logger("Slice " + keys[i] + " for key " + key + ": " + sliceCountString);
 			}
 			
-			if(bucketCountString != null) {
-				bucketSum += Long.parseLong(bucketCountString);
+			if(sliceCountString != null) {
+				slicesSum += Long.parseLong(sliceCountString);
 			}
 		}
 		
 		// Are we over the limit?
-		boolean isOverCount = false;
-		if(bucketSum > _rateCount) {
-			isOverCount = true;
+		boolean isOverLimit = false;
+		if(slicesSum > getRateLimit()) {
+			isOverLimit = true;
 		}
 		
-		if(_isDebug) {
-			logger("Bucket sum for key " + key + ": " + bucketSum);
-			logger("For key " + key + ". Is over limit?: " + isOverCount);
+		if(isDebug()) {
+			logger("Slice sum for key " + key + ": " + slicesSum);
+			logger("For key " + key + ". Is over limit?: " + isOverLimit);
 		}
 		
-		return isOverCount;
+		return isOverLimit;
 	}
 	
 	
 	/**
 	 * Shuts down the memcached client connection.
 	 */
-	public void shutdown() {
+	public void close() {
 		_mcdClient.shutdown();
 	}
 
@@ -174,28 +128,24 @@ public class RateLimiterMemcached extends RateLimiter {
 	
 	//--------------------------------- Private -------------------------------------------------//
 	
-	private static final int BUCKET_EXPIRATION_PADDING_SECONDS = 600;  // 5 minutes
-	private BucketKeys _keyedBuckets;
+	private static final int SLICE_EXPIRATION_PADDING_SECONDS = 600;  // 5 minutes
 	private MemcachedClient _mcdClient;
 
 	
-	// For current bucket
-	private String getMemCacheKey(String key) {
-		return key + "-" + _keyedBuckets.getCurrentBucketKey(); 
-	}
-	
-	
-	// For given bucket
-	private String getMemCacheKey(String key, String bucketKey) {
-		return key + "-" + bucketKey;
+	// For given slice
+	private String getMemCacheKey(String key, String sliceKey) {
+		return key + "-" + sliceKey;
 	}
 
 	
-	private int getMemCacheBucketExpiration() {
+	private int getMemCacheSliceExpiration() {
 		// Add padding to rate period
-		return (int)((_ratePeriodMillis/1000) + BUCKET_EXPIRATION_PADDING_SECONDS);
+		return (int)((getRatePeriodMillis()/1000) + SLICE_EXPIRATION_PADDING_SECONDS);
 	}
 		
+	
+	
+	
 	
 	
 	
@@ -209,7 +159,7 @@ public class RateLimiterMemcached extends RateLimiter {
 		boolean isDebug = true;
 		InetSocketAddress[] memcahdServers = {new InetSocketAddress("127.0.0.1", 11211)};
 
-		RateLimiter limiter = new RateLimiterMemcached(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
+		RateLimiterMemcached limiter = new RateLimiterMemcached(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
 		
 		String email1 = "bruce.slawson@gmail.com";
 		String email2 = "slawsonb@gmail.com";		
@@ -232,13 +182,13 @@ public class RateLimiterMemcached extends RateLimiter {
 		}
 		
 		System.out.println("\n\nDone!");
-		limiter.shutdown();
+		limiter.close();
 	}
 
 	
 	private static void sleep(long millis) throws InterruptedException {
 		System.out.println("sleeping (ms): " + millis);
-		Thread.currentThread().sleep(millis);
+		Thread.sleep(millis);
 	}
 
 }
