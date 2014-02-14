@@ -3,7 +3,6 @@ package com.bruceslawson.ratelimiter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Random;
 
 import net.spy.memcached.MemcachedClient;
 
