@@ -23,7 +23,7 @@ import net.spy.memcached.MemcachedClient;
  *
  * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
  */
-public class RateLimiterMemcached extends RateLimiter {	
+public class RateLimiterMemcache extends RateLimiter {	
 
 		
 	/**
@@ -37,7 +37,7 @@ public class RateLimiterMemcached extends RateLimiter {
 	 * 
 	 * @throws IOException
 	 */
-	public RateLimiterMemcached(long rateLimit, long ratePeriodSeconds, int numberOfSlices, boolean isDebug, InetSocketAddress ... memcachedServers) throws IOException {		
+	public RateLimiterMemcache(long rateLimit, long ratePeriodSeconds, int numberOfSlices, boolean isDebug, InetSocketAddress ... memcachedServers) throws IOException {		
 		super(rateLimit, ratePeriodSeconds, numberOfSlices, isDebug);
 		
 		// Setup the memcache connections
@@ -159,7 +159,7 @@ public class RateLimiterMemcached extends RateLimiter {
 		boolean isDebug = true;
 		InetSocketAddress[] memcahdServers = {new InetSocketAddress("127.0.0.1", 11211)};
 
-		RateLimiterMemcached limiter = new RateLimiterMemcached(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
+		RateLimiterMemcache limiter = new RateLimiterMemcache(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
 		
 		String email1 = "bruce.slawson@gmail.com";
 		String email2 = "slawsonb@gmail.com";		
