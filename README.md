@@ -12,12 +12,14 @@ Using the rate limiter:
 ```java
 		String limiterKey = "BRUCES_LOGIN_ATTEMPTS";
 
-		RateLimiter limiter = new RateLimiterMemcached(6, 5*60, 5, false);
+		RateLimiter limiter = new RateLimiterMemcache(6, 5*60, 5, false);
 		
 		boolean isThisKeyLimited = limiter.isLimited(limiterKey);
 		
 		limiter.incrementCount(limiterKey);
 		
 		isThisKeyLimited = limiter.isLimited(limiterKey);
+		
+		limiter.close();
 ```
 

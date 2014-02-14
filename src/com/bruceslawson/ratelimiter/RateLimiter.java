@@ -31,10 +31,10 @@ public abstract class RateLimiter {
 		_sliceNamer = new SliceNamer(ratePeriodSeconds, numberOfSlices, isDebug);
 		
 		if(_isDebug) {
-			logger("Rate Limit: " + _rateLimit);
-			logger("Rate Period (ms): " + _ratePeriodMillis);
-			logger("Number Of Slices: " + _numberOfSlices);
-			logger("Slice Size (ms): " + _sliceSizeMillis);
+			DebugPrinter.print(this.getClass(), "Rate Limit: " + _rateLimit);
+			DebugPrinter.print(this.getClass(), "Rate Period (ms): " + _ratePeriodMillis);
+			DebugPrinter.print(this.getClass(), "Number Of Slices: " + _numberOfSlices);
+			DebugPrinter.print(this.getClass(), "Slice Size (ms): " + _sliceSizeMillis);
 		}
 	}
 
@@ -42,31 +42,31 @@ public abstract class RateLimiter {
 	/**
 	 * Will increment the key count by 1.
 	 * 
-	 * @param key The unique key
+	 * @param limterKey The unique key
 	 * 
 	 */
-	public void incrementCount(String key) {
-		incrementCount(key, 1);
+	public void incrementCount(String limterKey) {
+		incrementCount(limterKey, 1);
 	}
 	
 	
 	/**
 	 * Will increment the key count by count.
 	 * 
-	 * @param key The unique key
+	 * @param limiterKey The unique key
 	 * @param count The amount to increment by
 	 */
-	public abstract void incrementCount(String key, int count);
+	public abstract void incrementCount(String limiterKey, int count);
 	
 
 	/**
 	 * Checks to see if key is over limit.
 	 * 
-	 * @param key  The unique key
+	 * @param limiterKey  The unique key
 	 * @return Is the key over the limit?
 	 */
-	public boolean isLimited(String key) {
-		return isLimited(key, 0);
+	public boolean isLimited(String limiterKey) {
+		return isLimited(limiterKey, 0);
 	}	
 	
 	
@@ -74,35 +74,20 @@ public abstract class RateLimiter {
 	 * Checks to see if key is over limit.  Increments the key by count
 	 * before doing the check. Zero count means no increment.
 	 * 
-	 * @param key  The unique key
+	 * @param limiterKey  The unique key
 	 * @param count The amount to increment by
 	 * @return Is the key over the limit?
 	 */
-	public abstract boolean isLimited(String key, int count);
-
+	public abstract boolean isLimited(String limiterKey, int count);
 	
-	// For current slice
-	protected String getSliceKey(String catagoryName) {
-		return catagoryName + "-" + getSliceNamer().getCurrentSliceName(); 
-	}
-	
-	
-//	/**
-//	 * Shuts down the rate limiter.
-//	 */
-//	public void shutdown() {
-//		// Nothing here
-//	}
-//	
-//	/**
-//	 * Removes unused slice from the data store.
-//	 */
-//	public void cleanupExpiredSlices() {
-//		// Nothing here
-//	}
 	
 	
 	//--------------------------------- Protected -------------------------------------------------//
+
+	// For current slice
+	protected String getSliceKey(String catagoryName) {
+		return catagoryName + "~_~" + getSliceNamer().getCurrentSliceName(); 
+	}
 	
 
 	/**
@@ -141,6 +126,7 @@ public abstract class RateLimiter {
 		return _sliceNamer;
 	}
 	
+	
 	/**
 	 * Is debugging on or off?
 	 * 
@@ -160,17 +146,7 @@ public abstract class RateLimiter {
 		_isDebug = isDebug;
 	}	
 	
-	
-	/**
-	 * A very basic logger that prints to stdout
-	 * 
-	 * @param message The message to print
-	 */
-	protected void logger(String message) {
-		System.out.println( this.getClass().getName() + "> " + message);
-	}
-	
-	
+
 	
 	
 	//--------------------------------- Private -------------------------------------------------//

@@ -18,13 +18,14 @@ import net.spy.memcached.MemcachedClient;
  * 		<code>shell> ./memcached -vv</code>
  * <p>
  * Example usage:<br><br>
- * 		<code>RateLimiter limiter = new RateLimiterMemcached(6, 5*60, 5, false);<br>
+ * 		<code>RateLimiter limiter = new RateLimiterMemcache(6, 5*60, 5, false);<br>
  * 		boolean isThisKeyLimited = limiter.isLimited("username@domain.com");</code>
  *
  * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
  */
 public class RateLimiterMemcache extends RateLimiter {	
-
+	private static final String DEFAULT_MEMCACHE_HOST = "localhost";
+	private static final int DEFAULT_MEMCACHE_PORT = 11211;
 		
 	/**
 	 * Construct the rate limiter.
@@ -43,9 +44,9 @@ public class RateLimiterMemcache extends RateLimiter {
 		// Setup the memcache connections
 	    if(memcachedServers == null || memcachedServers.length < 1) {
 			if(isDebug()) {
-				logger("No memcached server provided. Using default 127.0.0.1:11211");
+				DebugPrinter.print(this.getClass(), "No memcached server provided. Using default " + DEFAULT_MEMCACHE_HOST + ":" + DEFAULT_MEMCACHE_PORT);
 			}
-	    	_mcdClient = new MemcachedClient(new InetSocketAddress("127.0.0.1", 11211));
+	    	_mcdClient = new MemcachedClient(new InetSocketAddress(DEFAULT_MEMCACHE_HOST, DEFAULT_MEMCACHE_PORT));
 	    } else {
 	    	_mcdClient = new MemcachedClient(memcachedServers);
 	    }
@@ -93,7 +94,7 @@ public class RateLimiterMemcache extends RateLimiter {
 			String sliceCountString = (String)slices.get(keys[i]);
 			
 			if(isDebug()) {
-				logger("Slice " + keys[i] + " for key " + key + ": " + sliceCountString);
+				DebugPrinter.print(this.getClass(), "Slice " + keys[i] + " for key " + key + ": " + sliceCountString);
 			}
 			
 			if(sliceCountString != null) {
@@ -108,8 +109,8 @@ public class RateLimiterMemcache extends RateLimiter {
 		}
 		
 		if(isDebug()) {
-			logger("Slice sum for key " + key + ": " + slicesSum);
-			logger("For key " + key + ". Is over limit?: " + isOverLimit);
+			DebugPrinter.print(this.getClass(), "Slice sum for key " + key + ": " + slicesSum);
+			DebugPrinter.print(this.getClass(), "For key " + key + ". Is over limit?: " + isOverLimit);
 		}
 		
 		return isOverLimit;
@@ -151,45 +152,6 @@ public class RateLimiterMemcache extends RateLimiter {
 	
 	/////////////////////////////////// test stuff ////////////////////////////////////////////////
 	
-
-	public static void main(String[] args) throws IOException, InterruptedException {	
-		long rateCount = 20;
-		long ratePeriodSeconds = 5*60; // 5 minutes
-		int numberOfBuckets = 5;
-		boolean isDebug = true;
-		InetSocketAddress[] memcahdServers = {new InetSocketAddress("127.0.0.1", 11211)};
-
-		RateLimiterMemcache limiter = new RateLimiterMemcache(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
-		
-		String email1 = "bruce.slawson@gmail.com";
-		String email2 = "slawsonb@gmail.com";		
-		int maxCount = 3;
-		int maxSleepMillis = 30000;
-		
-		Random rdn = new Random(System.currentTimeMillis());
-		int count = 0;
-		long sleepMillis = 0;
-		for(int i = 0; i < 10; i++) {
-			count = rdn.nextInt(maxCount) + 1;
-			sleepMillis = rdn.nextInt(maxSleepMillis);
-			System.out.println("isLimited(\"" + email1 + "\", " + count + "): " + limiter.isLimited(email1, count));
-			sleep(sleepMillis);
-			
-			count = rdn.nextInt(maxCount) + 1;
-			sleepMillis = rdn.nextInt(maxSleepMillis);
-			System.out.println("isLimited(\"" + email2 + "\", " + count + "): " + limiter.isLimited(email2, count));
-			sleep(sleepMillis);
-		}
-		
-		System.out.println("\n\nDone!");
-		limiter.close();
-	}
-
-	
-	private static void sleep(long millis) throws InterruptedException {
-		System.out.println("sleeping (ms): " + millis);
-		Thread.sleep(millis);
-	}
 
 }
 

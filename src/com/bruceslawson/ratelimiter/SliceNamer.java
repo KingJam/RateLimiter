@@ -79,29 +79,6 @@ public class SliceNamer {
 		System.out.println( this.getClass().getName() + "> " + message);
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	///////////////////////////// test stuff /////////////////////////////////////////
-	
-	
-	public static void main(String[] args) throws InterruptedException {
-		SliceNamer limiter = new SliceNamer(5*60, 5, true);
-		
-		for(int i = 0; i < 100; i++) {
-			limiter.getCurrentSliceName();
-			limiter.getAllSliceNames();
-			sleep(7321);
-		}
-	}
-	
-	private static void sleep(long millis) throws InterruptedException {
-		System.out.println("sleeping: " + millis);
-		Thread.sleep(millis);
-	}
 
+	
 }
