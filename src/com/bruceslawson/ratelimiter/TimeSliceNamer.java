@@ -1,16 +1,16 @@
 package com.bruceslawson.ratelimiter;
 
 /**
- * 
+ * Generates names based on time and number of slices.
  * 
  * 
  * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
  *
  */
-public class SliceNamer {
+public class TimeSliceNamer {
 	
 	
-	protected SliceNamer(long ratePeriodSeconds, int numberOfSlices, boolean isDebug) {
+	protected TimeSliceNamer(long ratePeriodSeconds, int numberOfSlices, boolean isDebug) {
 		_ratePeriodMillis = ratePeriodSeconds * 1000;
 		_numberOfSlices = numberOfSlices;
 		_sliceSizeMillis = (ratePeriodSeconds/numberOfSlices) * 1000;

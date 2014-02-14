@@ -6,7 +6,7 @@ import java.util.Random;
 
 import com.bruceslawson.ratelimiter.RateLimiter;
 import com.bruceslawson.ratelimiter.RateLimiterMemcache;
-import com.bruceslawson.ratelimiter.SliceNamer;
+import com.bruceslawson.ratelimiter.TimeSliceNamer;
 
 /**
  * @author Bruce Slawson &lt;bruce@bruceslawson.com&gt;
@@ -17,17 +17,18 @@ public class Tester {
 	public static void main(String[] args) throws IOException {	
 		long rateCount = 20;
 		long ratePeriodSeconds = 5*60; // 5 minutes
-		int numberOfBuckets = 5;
+		int numberOfSlices = 5; 
 		boolean isDebug = true;
+		
+		String limiterKey1 = "bruce@bruceslawson.com";
+		String limiterKey2 = "user@domain.com";	
+		
 		InetSocketAddress[] memcahdServers = {new InetSocketAddress("127.0.0.1", 11211)};
 
 		
 		RateLimiterMemcache limiter = null;
 		try {
-			limiter = new RateLimiterMemcache(rateCount, ratePeriodSeconds, numberOfBuckets, isDebug, memcahdServers);
-			
-			String email1 = "bruce.slawson@gmail.com";
-			String email2 = "slawsonb@gmail.com";		
+			limiter = new RateLimiterMemcache(rateCount, ratePeriodSeconds, numberOfSlices, isDebug, memcahdServers);
 			int maxCount = 3;
 			int maxSleepMillis = 30000;
 			
@@ -37,12 +38,12 @@ public class Tester {
 			for(int i = 0; i < 10; i++) {
 				count = rdn.nextInt(maxCount) + 1;
 				sleepMillis = rdn.nextInt(maxSleepMillis);
-				System.out.println("isLimited(\"" + email1 + "\", " + count + "): " + limiter.isLimited(email1, count));
+				System.out.println("isLimited(\"" + limiterKey1 + "\", " + count + "): " + limiter.isLimited(limiterKey1, count));
 				sleep(sleepMillis);
 				
 				count = rdn.nextInt(maxCount) + 1;
 				sleepMillis = rdn.nextInt(maxSleepMillis);
-				System.out.println("isLimited(\"" + email2 + "\", " + count + "): " + limiter.isLimited(email2, count));
+				System.out.println("isLimited(\"" + limiterKey2 + "\", " + count + "): " + limiter.isLimited(limiterKey2, count));
 				sleep(sleepMillis);
 			}
 			

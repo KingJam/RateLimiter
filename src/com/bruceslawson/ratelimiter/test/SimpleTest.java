@@ -1,15 +1,6 @@
-An implementation of a rolling rate limiter that uses Couchbase or Memcahed as the storage mechanism.
-If no Memcached servers are specified it will check locally (127.0.0.1) on port 11211.
+package com.bruceslawson.ratelimiter.test;
 
-To start memcache, with debug info, on default port 11211:
-
-```
-		shell> ./memcached -vv
-```
-
-Using the rate limiter:
-
-```java
+import java.io.IOException;
 import com.bruceslawson.ratelimiter.RateLimiter;
 import com.bruceslawson.ratelimiter.RateLimiterMemcache;
 
@@ -28,5 +19,3 @@ public class SimpleTest {
 		limiter.close();
 	}
 }
-```
-

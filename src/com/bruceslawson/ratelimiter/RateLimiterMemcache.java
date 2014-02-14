@@ -10,9 +10,9 @@ import net.spy.memcached.MemcachedClient;
 
 /**
  * Basic implementation of a rolling rate limiter that uses memcahed as the storage mechanism.
- * If no memcached servers are specified it will check locally (127.0.0.1) on port 11211.  I 
- * still need to make memcahed connections more configurable and more robust. No effort
- * has been made, as of yet, to make this class thread safe.
+ * If no memcached servers are specified it will check locally (127.0.0.1) on port 11211.
+ * <p> 
+ * Uses memcache expiration times to clean up old slices. 
  * <p>
  * To start memcached with debug info and on default port 11211:<br><br>
  * 		<code>shell> ./memcached -vv</code>
@@ -56,11 +56,11 @@ public class RateLimiterMemcache extends RateLimiter {
 	/**
 	 * Will increment the key count by count.
 	 * 
-	 * @param key The unique key
+	 * @param limiterKey The unique key
 	 * @param count The amount to increment by
 	 */
-	public void incrementCount(String key, int count) {
-		_mcdClient.incr(getSliceKey(key), count, count, getMemCacheSliceExpiration());
+	public void incrementCount(String limiterKey, int count) {
+		_mcdClient.incr(getCurrentSliceName(limiterKey), count, count, getMemCacheSliceExpiration());
 	}
 	
 	
@@ -68,22 +68,18 @@ public class RateLimiterMemcache extends RateLimiter {
 	 * Checks to see if key is over limit.  Increments the key by count, if
 	 * isUpdateCount is true, before doing the check.
 	 * 
-	 * @param key The unique key.
+	 * @param limiterKey The unique key.
 	 * @param isUpdateCount Should count be updated?
 	 * @param count The amount to increment by.
 	 * @return Is the key over the limit?
 	 */
-	public boolean isLimited(String key, int count) {
-		
+	public boolean isLimited(String limiterKey, int count) {
 		if(count != 0) {
-			incrementCount(key, count);
+			incrementCount(limiterKey, count);
 		}
 		
 		// Get all the keys
-		String[] keys = getSliceNamer().getAllSliceNames();
-		for(int i = 0; i < keys.length; i++) {
-			keys[i] = getMemCacheKey(key, keys[i]);;
-		}
+		String[] keys = getSliceNames(limiterKey);
 		
 		// Get all the slices at once
 		Map<String, Object> slices = _mcdClient.getBulk(keys);
@@ -94,7 +90,7 @@ public class RateLimiterMemcache extends RateLimiter {
 			String sliceCountString = (String)slices.get(keys[i]);
 			
 			if(isDebug()) {
-				DebugPrinter.print(this.getClass(), "Slice " + keys[i] + " for key " + key + ": " + sliceCountString);
+				DebugPrinter.print(this.getClass(), "Slice " + keys[i] + " for key " + limiterKey + ": " + sliceCountString);
 			}
 			
 			if(sliceCountString != null) {
@@ -109,8 +105,8 @@ public class RateLimiterMemcache extends RateLimiter {
 		}
 		
 		if(isDebug()) {
-			DebugPrinter.print(this.getClass(), "Slice sum for key " + key + ": " + slicesSum);
-			DebugPrinter.print(this.getClass(), "For key " + key + ". Is over limit?: " + isOverLimit);
+			DebugPrinter.print(this.getClass(), "Slice sum for key " + limiterKey + ": " + slicesSum);
+			DebugPrinter.print(this.getClass(), "For key " + limiterKey + ". Is over limit?: " + isOverLimit);
 		}
 		
 		return isOverLimit;
@@ -121,6 +117,7 @@ public class RateLimiterMemcache extends RateLimiter {
 	 * Shuts down the memcached client connection.
 	 */
 	public void close() {
+		super.close();
 		_mcdClient.shutdown();
 	}
 
@@ -133,26 +130,11 @@ public class RateLimiterMemcache extends RateLimiter {
 	private MemcachedClient _mcdClient;
 
 	
-	// For given slice
-	private String getMemCacheKey(String key, String sliceKey) {
-		return key + "-" + sliceKey;
-	}
-
-	
 	private int getMemCacheSliceExpiration() {
 		// Add padding to rate period
 		return (int)((getRatePeriodMillis()/1000) + SLICE_EXPIRATION_PADDING_SECONDS);
 	}
-		
 	
-	
-	
-	
-	
-	
-	/////////////////////////////////// test stuff ////////////////////////////////////////////////
-	
-
 }
 
 

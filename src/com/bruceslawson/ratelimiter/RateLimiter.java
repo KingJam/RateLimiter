@@ -28,7 +28,7 @@ public abstract class RateLimiter {
 		_sliceSizeMillis = (ratePeriodSeconds/numberOfSlices) * 1000;
 		_isDebug = isDebug;
 		
-		_sliceNamer = new SliceNamer(ratePeriodSeconds, numberOfSlices, isDebug);
+		_timeSliceNamer = new TimeSliceNamer(ratePeriodSeconds, numberOfSlices, isDebug);
 		
 		if(_isDebug) {
 			DebugPrinter.print(this.getClass(), "Rate Limit: " + _rateLimit);
@@ -81,14 +81,54 @@ public abstract class RateLimiter {
 	public abstract boolean isLimited(String limiterKey, int count);
 	
 	
+
+	/**
+	 * Shuts down the rate limiter.
+	 */
+	public void close() {
+		// nothing needed.
+	}
+	
+
 	
 	//--------------------------------- Protected -------------------------------------------------//
 
-	// For current slice
-	protected String getSliceKey(String catagoryName) {
-		return catagoryName + "~_~" + getSliceNamer().getCurrentSliceName(); 
+	/**
+	 * Returns all the current slice names.
+	 * 
+	 * @param limiterKey
+	 * @return
+	 */
+	protected String[] getSliceNames(String limiterKey) {
+		
+		String[] names = _timeSliceNamer.getAllSliceNames();
+		for(int i = 0; i < names.length; i++) {
+			names[i] = getSliceName(limiterKey, names[i]);
+		}
+		
+		
+		return names;
 	}
 	
+	/**
+	 * Creates the full key name based on the limiterKey and the sliceName
+	 * @param limiterKey
+	 * @param sliceName
+	 * @return
+	 */
+	protected static String getSliceName(String limiterKey, String sliceName) {
+		return limiterKey + "~-~" + sliceName;
+	}
+	
+	/**
+	 * Gets the full slice name for the current time
+	 * 
+	 * @param limiterKey
+	 * @return
+	 */
+	protected String getCurrentSliceName(String limiterKey) {
+		return getSliceName(limiterKey, _timeSliceNamer.getCurrentSliceName());
+	}
 
 	/**
 	 * @return The number of time slices
@@ -122,8 +162,8 @@ public abstract class RateLimiter {
 	}
 	
 
-	protected SliceNamer getSliceNamer() {
-		return _sliceNamer;
+	protected TimeSliceNamer getSliceNamer() {
+		return _timeSliceNamer;
 	}
 	
 	
@@ -157,6 +197,6 @@ public abstract class RateLimiter {
 	private long 		_ratePeriodMillis;
 	private boolean 	_isDebug;
 	
-	private SliceNamer	_sliceNamer;
+	private TimeSliceNamer	_timeSliceNamer;
 
 }
