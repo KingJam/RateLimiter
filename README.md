@@ -1,11 +1,18 @@
 An implementation of a rolling rate limiter that uses Couchbase or Memcahed as the storage mechanism.
-If no Memcached servers are specified it will check locally (127.0.0.1) on port 11211.
+If no Memcache/Couchbase servers are specified it will check locally (127.0.0.1) on port 11211.
 
 To start memcache, with debug info, on default port 11211:
 
 ```
 		shell> ./memcached -vv
 ```
+
+Depends on the spymemcached client library which is included in the lib directory.
+
+API docs are in the docs folder.
+
+
+
 
 Using the rate limiter:
 
