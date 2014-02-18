@@ -9,6 +9,7 @@ public class DebugPrinter {
 	/**
 	 * A very basic logger that prints to stdout
 	 * 
+	 * @param theClass The class associated with this message
 	 * @param message The message to print
 	 */
 	protected static void print(Class<?> theClass, String message) {
