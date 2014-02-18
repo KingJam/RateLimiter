@@ -31,10 +31,10 @@ public abstract class RateLimiter {
 		_timeSliceNamer = new TimeSliceNamer(ratePeriodSeconds, numberOfSlices, isDebug);
 		
 		if(_isDebug) {
-			DebugPrinter.print(this.getClass(), "Rate Limit: " + _rateLimit);
-			DebugPrinter.print(this.getClass(), "Rate Period (ms): " + _ratePeriodMillis);
-			DebugPrinter.print(this.getClass(), "Number Of Slices: " + _numberOfSlices);
-			DebugPrinter.print(this.getClass(), "Slice Size (ms): " + _sliceSizeMillis);
+			DebugPrinter.print(RateLimiter.class, "Rate Limit: " + _rateLimit);
+			DebugPrinter.print(RateLimiter.class, "Rate Period (ms): " + _ratePeriodMillis);
+			DebugPrinter.print(RateLimiter.class, "Number Of Slices: " + _numberOfSlices);
+			DebugPrinter.print(RateLimiter.class, "Slice Size (ms): " + _sliceSizeMillis);
 		}
 	}
 

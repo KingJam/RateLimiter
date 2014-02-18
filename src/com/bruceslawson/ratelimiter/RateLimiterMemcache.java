@@ -43,7 +43,7 @@ public class RateLimiterMemcache extends RateLimiter {
 		// Setup the memcache connections
 	    if(memcachedServers == null || memcachedServers.length < 1) {
 			if(isDebug()) {
-				DebugPrinter.print(this.getClass(), "No memcached server provided. Using default " + DEFAULT_MEMCACHE_HOST + ":" + DEFAULT_MEMCACHE_PORT);
+				DebugPrinter.print(RateLimiterMemcache.class, "No memcached server provided. Using default " + DEFAULT_MEMCACHE_HOST + ":" + DEFAULT_MEMCACHE_PORT);
 			}
 	    	_mcdClient = new MemcachedClient(new InetSocketAddress(DEFAULT_MEMCACHE_HOST, DEFAULT_MEMCACHE_PORT));
 	    } else {
@@ -89,7 +89,7 @@ public class RateLimiterMemcache extends RateLimiter {
 			String sliceCountString = (String)slices.get(keys[i]);
 			
 			if(isDebug()) {
-				DebugPrinter.print(this.getClass(), "Slice " + keys[i] + " for key " + limiterKey + ": " + sliceCountString);
+				DebugPrinter.print(RateLimiterMemcache.class, "Slice " + keys[i] + " for key " + limiterKey + ": " + sliceCountString);
 			}
 			
 			if(sliceCountString != null) {
@@ -104,8 +104,8 @@ public class RateLimiterMemcache extends RateLimiter {
 		}
 		
 		if(isDebug()) {
-			DebugPrinter.print(this.getClass(), "Slice sum for key " + limiterKey + ": " + slicesSum);
-			DebugPrinter.print(this.getClass(), "For key " + limiterKey + ". Is over limit?: " + isOverLimit);
+			DebugPrinter.print(RateLimiterMemcache.class, "Slice sum for key " + limiterKey + ": " + slicesSum);
+			DebugPrinter.print(RateLimiterMemcache.class, "For key " + limiterKey + ". Is over limit?: " + isOverLimit);
 		}
 		
 		return isOverLimit;

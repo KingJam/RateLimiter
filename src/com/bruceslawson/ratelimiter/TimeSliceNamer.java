@@ -25,7 +25,7 @@ public class TimeSliceNamer {
 		String key = currentTime + "_" + currentBucket;
 
 		if(_isDebug) {
-			logger("Current slice key: " + key);
+			DebugPrinter.print(TimeSliceNamer.class, "Current slice key: " + key);
 		}
 				
 		return key;
@@ -58,7 +58,7 @@ public class TimeSliceNamer {
 		}
 		
 		if(_isDebug) {
-			logger("All slice names: " + allNamesString);
+			DebugPrinter.print(TimeSliceNamer.class, "All slice names: " + allNamesString);
 		}
 		
 		return names;
@@ -74,11 +74,4 @@ public class TimeSliceNamer {
 	private long _ratePeriodMillis;
 	private boolean _isDebug;
 
-	
-	private void logger(String message) {
-		System.out.println( this.getClass().getName() + "> " + message);
-	}
-
-
-	
 }
